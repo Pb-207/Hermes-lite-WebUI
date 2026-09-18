@@ -1,0 +1,6 @@
+# 统一行尾：仓库里一律 LF（Windows 检出时由 git 处理），避免脚本在 Linux 上带 \r
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.jpg binary
+*.webp binary

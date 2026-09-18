@@ -1,0 +1,107 @@
+/* ──────────────────────────────────────────────────────────────
+   base.css —— reset / 排版 / 通用
+   ────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;     /* 防止横屏 iOS 字号自动放大 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  background-image: var(--bg-deco);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.65;
+  overscroll-behavior-y: none;        /* 禁用橡皮筋整页回弹，聊天区自己滚 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+[hidden] { display: none !important; }
+
+h1, h2, h3, h4, p, ul, ol, figure { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; padding: 0; }
+a { color: var(--accent-soft); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img, svg, video { max-width: 100%; display: block; }
+
+/* svg 图标统一填充色，尺寸由容器控制 */
+svg { fill: currentColor; width: 1em; height: 1em; }
+
+code, pre, kbd, .mono { font-family: var(--font-mono); }
+
+kbd {
+  font-size: 11px;
+  padding: 1px 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--panel-2);
+  color: var(--text-2);
+}
+
+/* 焦点可见性：键盘导航清晰，鼠标点击不刺眼 */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 细滚动条 */
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--text-3); background-clip: content-box; }
+
+/* 屏读专用 */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.spacer { flex: 1 1 auto; }
+
+/* 移动端禁止选中 UI 文本（消息正文仍可选中） */
+.btn, .nav-item, .side-item, .seg, .profile, .statusbar { user-select: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* 启动遮罩：避免主题闪白 */
+.boot {
+  position: fixed; inset: 0; z-index: 90;
+  display: grid; place-items: center;
+  background: var(--bg);
+  transition: opacity var(--dur) var(--ease);
+}
+.boot.gone { opacity: 0; pointer-events: none; }
+.boot-spin {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2.5px solid var(--border-strong);
+  border-top-color: var(--accent);
+  animation: spin .75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0d1017">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hermes">
+<title>Hermes Lite WebUI</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="stylesheet" href="./css/tokens.css">
+<link rel="stylesheet" href="./css/base.css">
+<link rel="stylesheet" href="./css/layout.css">
+<link rel="stylesheet" href="./css/components.css">
+</head>
+<body>
+
+<div class="boot" id="boot"><div class="boot-spin"></div></div>
+
+<!-- ══════════════════ 首次配置 ══════════════════ -->
+<section class="setup" id="setup" hidden>
+  <form class="setup-card" id="setup-form" autocomplete="off" novalidate>
+    <div class="setup-brand">
+      <svg class="mark" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2.6 4.2 7.1v9.8L12 21.4l7.8-4.5V7.1L12 2.6Zm0 3.1 4.9 2.8v5.6L12 16.9l-4.9-2.8V8.5L12 5.7Zm0 3.2a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z"/></svg>
+      <h1>连接 Hermes</h1>
+      <p class="setup-sub">本页是<b>纯静态</b>页面：没有后端、不存任何密钥。你的 Key 只写进这台设备的浏览器存储，直接发给你填的那个地址。</p>
+    </div>
+
+    <label for="s-base">Base URL</label>
+    <input id="s-base" name="base" type="url" inputmode="url" spellcheck="false"
+           autocapitalize="off" autocorrect="off" placeholder="https://hermes.example.com/v1" required>
+    <p class="hint">填到 <code>/v1</code>。多人共用时改成 <code>&lt;主机&gt;/p/&lt;profile&gt;/v1</code> 即可各用各的 Key。</p>
+
+    <label for="s-key">API Key</label>
+    <div class="input-row">
+      <input id="s-key" name="key" type="password" spellcheck="false" autocapitalize="off" autocorrect="off" required>
+      <button type="button" class="btn icon" id="s-reveal" aria-label="显示密钥" title="显示/隐藏">
+        <svg viewBox="0 0 24 24"><path d="M12 5c-5 0-9 4.5-9 7s4 7 9 7 9-4.5 9-7-4-7-9-7Zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-2.2a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"/></svg>
+      </button>
+    </div>
+    <p class="hint warn">Key 等于这个 agent 的完整权限（能执行命令、读写文件）。别在公共电脑上保存。</p>
+
+    <div class="row">
+      <button type="button" class="btn" id="s-test">测试连接</button>
+      <span class="spacer"></span>
+      <button type="submit" class="btn primary">保存并进入</button>
+    </div>
+    <p class="msg" id="s-msg" role="status"></p>
+  </form>
+</section>
+
+<!-- ══════════════════ 主界面 ══════════════════ -->
+<div class="app" id="app" hidden>
+
+  <!-- 侧栏（移动端为抽屉） -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="sidebar" id="sidebar" aria-label="会话与导航">
+    <div class="side-top">
+      <span class="wordmark">Hermes</span>
+      <button class="btn pill primary" id="new-chat" title="新建对话">
+        <svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z"/></svg>
+        <span>New</span>
+      </button>
+      <button class="btn icon only-mobile" id="side-close" aria-label="关闭菜单">
+        <svg viewBox="0 0 24 24"><path d="m18.3 5.7-6.3 6.3-6.3-6.3-1.4 1.4L10.6 13l-6.3 6.3 1.4 1.4L12 14.4l6.3 6.3 1.4-1.4L13.4 13l6.3-6.3-1.4-1.4Z"/></svg>
+      </button>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item" data-view="chat">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16v12H7l-3 3V4Z"/></svg><span>Chat</span>
+      </button>
+      <button class="nav-item" data-view="stats">
+        <svg viewBox="0 0 24 24"><path d="M3 13h4v8H3v-8Zm7-9h4v17h-4V4Zm7 5h4v12h-4V9Z"/></svg><span>使用统计</span>
+      </button>
+    </nav>
+
+    <div class="side-search">
+      <svg class="si" viewBox="0 0 24 24"><path d="M10 3a7 7 0 1 0 4.2 12.6l4.1 4.1 1.4-1.4-4.1-4.1A7 7 0 0 0 10 3Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/></svg>
+      <input id="filter" type="search" placeholder="过滤对话…" autocomplete="off">
+    </div>
+
+    <div class="side-list" id="side-list"></div>
+
+    <div class="side-foot">
+      <button class="profile" id="open-settings">
+        <span class="avatar xs" id="foot-avatar">H</span>
+        <span class="pf-text">
+          <span class="pf-name" id="foot-name">未连接</span>
+          <span class="pf-sub" id="foot-sub">点此设置</span>
+        </span>
+        <svg class="chev" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5H7Z"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 主区 -->
+  <main class="main">
+    <header class="topbar">
+      <button class="btn icon only-mobile" id="side-open" aria-label="会话列表">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18v2H3V6Zm0 5h18v2H3v-2Zm0 5h18v2H3v-2Z"/></svg>
+      </button>
+      <div class="top-title">
+        <span class="tt-main" id="top-title">新对话</span>
+        <span class="tt-sub" id="top-sub"></span>
+      </div>
+      <span class="spacer"></span>
+      <span class="conn" id="conn" title="连接状态"><i class="dot"></i><span id="conn-text">未连接</span></span>
+      <button class="btn icon" id="stop-btn" hidden aria-label="停止生成" title="停止">
+        <svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>
+      </button>
+      <button class="btn icon" id="top-refresh" aria-label="刷新" title="从服务端刷新会话与历史">
+        <svg viewBox="0 0 24 24"><path d="M12 5V1.6L6.6 6 12 10.4V7a5 5 0 1 1-5 5H4.5a7.5 7.5 0 1 0 7.5-7Z"/></svg>
+      </button>
+      <button class="btn icon" id="top-settings" aria-label="设置" title="设置">
+        <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Zm8.4-1.1.1-1.9-.1-1.9-2-.4a6.6 6.6 0 0 0-.7-1.6l1.1-1.7-1.4-1.4-1.7 1.1a6.6 6.6 0 0 0-1.6-.7l-.4-2h-1.9l-1.9.1-.4 2a6.6 6.6 0 0 0-1.6.7L7.2 4.2 5.8 5.6l1.1 1.7a6.6 6.6 0 0 0-.7 1.6l-2 .4L4.1 11l.1 1.9 2 .4c.2.6.4 1.1.7 1.6l-1.1 1.7 1.4 1.4 1.7-1.1c.5.3 1 .5 1.6.7l.4 2h1.9l1.9-.1.4-2c.6-.2 1.1-.4 1.6-.7l1.7 1.1 1.4-1.4-1.1-1.7c.3-.5.5-1 .7-1.6l2-.4Z"/></svg>
+      </button>
+    </header>
+
+    <!-- 视图：聊天 -->
+    <section class="view view-chat" id="view-chat">
+      <div class="stream" id="stream" aria-live="polite" aria-busy="false"></div>
+      <form class="composer-wrap" id="composer">
+        <div class="thumbs" id="thumbs" hidden></div>
+        <div class="composer">
+          <button class="btn icon clip" id="pick-image" type="button" aria-label="发送图片" title="发送图片（也可以直接把截图粘贴进来）">🏞️</button>
+          <input type="file" id="image-input" accept="image/*" multiple hidden>
+          <textarea id="input" rows="1" placeholder="发消息给 Hermes…" aria-label="消息输入框"></textarea>
+          <button class="btn icon send" id="send" type="submit" aria-label="发送">
+            <svg viewBox="0 0 24 24"><path d="M3.4 20.4 21 12 3.4 3.6 3 10l13 2-13 2 .4 6.4Z"/></svg>
+          </button>
+        </div>
+        <div class="composer-hint">
+          <span class="only-desktop"><kbd>Enter</kbd> 发送 · <kbd>Shift</kbd>+<kbd>Enter</kbd> 换行</span>
+          <span class="spacer"></span>
+          <button class="linkbtn" type="button" id="export-chat">导出</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 视图：使用统计 -->
+    <section class="view view-stats" id="view-stats" hidden>
+      <div class="page">
+        <div class="cards" id="stat-cards"></div>
+        <div class="panel">
+          <div class="panel-head">会话</div>
+          <div id="stat-sessions" class="stat-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 移动端底部状态条 -->
+    <footer class="statusbar" id="statusbar"></footer>
+  </main>
+</div>
+
+<!-- ══════════════════ 设置（移动端底部抽屉 / 桌面右侧抽屉） ══════════════════ -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-scrim" data-close></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="设置">
+    <div class="sheet-grip"></div>
+    <div class="sheet-head">
+      <b>设置</b>
+      <button class="btn icon" data-close aria-label="关闭">
+        <svg viewBox="0 0 24 24"><path d="m18.3 5.7-6.3 6.3-6.3-6.3-1.4 1.4L10.6 13l-6.3 6.3 1.4 1.4L12 14.4l6.3 6.3 1.4-1.4L13.4 13l6.3-6.3-1.4-1.4Z"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <label for="g-base">Base URL</label>
+      <input id="g-base" type="url" inputmode="url" spellcheck="false" autocapitalize="off">
+      <label for="g-key">API Key</label>
+      <div class="input-row">
+        <input id="g-key" type="password" spellcheck="false" autocapitalize="off">
+        <button class="btn icon" type="button" id="g-reveal" aria-label="显示密钥">
+          <svg viewBox="0 0 24 24"><path d="M12 5c-5 0-9 4.5-9 7s4 7 9 7 9-4.5 9-7-4-7-9-7Zm0 11.5A4.5 4.5 0 1 1 12 7.5a4.5 4.5 0 0 1 0 9Zm0-2.2a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"/></svg>
+        </button>
+      </div>
+      <label for="g-model">模型名</label>
+      <input id="g-model" type="text" spellcheck="false" placeholder="hermes-agent">
+      <button class="btn" type="button" id="g-test" style="margin-top:12px">测试连接</button>
+      <p class="msg" id="g-msg" role="status"></p>
+
+      <hr>
+      <div class="opt-row">
+        <span>外观</span>
+        <div class="seg" id="theme-seg">
+          <button type="button" data-theme-val="dark">深色</button>
+          <button type="button" data-theme-val="light">浅色</button>
+          <button type="button" data-theme-val="auto">跟随系统</button>
+        </div>
+      </div>
+      <div class="opt-row">
+        <span>显示工具调用过程</span>
+        <label class="switch"><input type="checkbox" id="opt-tools" checked><i></i></label>
+      </div>
+      <div class="opt-row">
+        <span>发送后清空输入框</span>
+        <label class="switch"><input type="checkbox" id="opt-clearafter" checked><i></i></label>
+      </div>
+
+      <hr>
+      <p class="hint" id="g-store"></p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" type="button" id="g-export">导出全部</button>
+        <button class="btn" type="button" id="g-import">导入</button>
+        <span class="spacer"></span>
+        <button class="btn danger" type="button" id="g-clear">清除本地数据</button>
+      </div>
+      <input type="file" id="g-file" accept="application/json" hidden>
+      <p class="hint foot-note">所有数据都在本浏览器（localStorage）。本页面不发送任何数据到自己的服务器 —— 它没有服务器。</p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn primary wide" type="button" id="g-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script type="module" src="./js/main.js"></script>
+</body>
+</html>
