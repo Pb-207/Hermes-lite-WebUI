@@ -462,6 +462,13 @@ hr { border: none; border-top: 1px solid var(--border); margin: 18px 0 6px; }
 /* 历史里用户消息带的图 */
 .bubble .atts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .bubble .atts img { max-width: 220px; max-height: 220px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+/* 正文里的图片：api_server 会把回复里的 MEDIA:<图片路径> 内联成 data URL（≤5MB），
+   必须限宽，否则一张大图会撑破气泡 */
+.bubble img {
+  max-width: min(100%, 420px); height: auto;
+  border-radius: 8px; border: 1px solid var(--border);
+  display: block; margin: 8px 0;
+}
 .tool {
   display: flex;
   align-items: center;

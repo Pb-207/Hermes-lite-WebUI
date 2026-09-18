@@ -450,13 +450,13 @@ export async function streamSessionChat(baseUrl, key, sessionId, { message, mode
       content += obj.delta || '';
     } else if (ev === 'assistant.completed') {
       if (obj.session_id) effectiveSid = obj.session_id;
-      // ⚠️ 别用它的 content 覆盖累积文本。实测（_tools/dump_stream.py 打原始帧）：
-      // 这条端点把**整轮**正文都用同一个 message_id 的 deltas 流出来，而
-      // assistant.completed.content 只有**最后一段** —— 一轮 17 字（"甲：准备 / 乙：读文件 / 丙：完成"）
-      // 对应 completed 只有 4 字（"丙：完成"）。用后者覆盖就会把前面几段正文抹掉，
-      // 工具条的 at 超过新长度再被钳到末尾 —— 症状就是"工具调用全挤在回复末尾"。
-      // 只在完全没有增量时当兜底。
-      if (typeof obj.content === 'string' && obj.content && !content) content = obj.content;
+      // 两种情形都要照顾到：
+      //  ① 服务端会把回复里的 `MEDIA:<图片路径>` 内联成 data URL（`_resolve_media_to_data_urls`）——
+      //     这段**只出现在 assistant.completed 里**，流式 deltas 给的是模型原文（还带着 MEDIA: 标签）。
+      //     此时 completed 明显更长，必须采用，否则图片永远显示不出来。
+      //  ② 反过来，本端点有时让 completed.content 只带**最后一段**（整轮 17 字时它只有 4 字）——
+      //     那种情况更短，采用就会把前面的正文截掉。所以判据是"更长才采用"。
+      if (typeof obj.content === 'string' && obj.content.length > content.length) content = obj.content;
     } else if (ev === 'run.completed' || ev === 'run.failed' || ev === 'run.cancelled'
                || ev === 'run.interrupted') {
       status = ev.slice(4);

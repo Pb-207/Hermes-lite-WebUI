@@ -21,6 +21,11 @@ function inline(t) {
   });
 
   t = t
+    // 图片：除了 http(s)，还必须认 data:image/... —— api_server 在回复送出去之前会把
+    // 回复里的 `MEDIA:<图片路径>` 就地内联成 data URL（`_resolve_media_to_data_urls`，
+    // 仅 png/jpg/jpeg/gif/webp/bmp 且 ≤5MB）。不认它的话会把几 MB 的 base64 当文字显示出来。
+    .replace(/!\[([^\]]*)\]\((data:image\/[a-z0-9+.-]+;base64,[A-Za-z0-9+/=]+)\)/gi,
+      '<img src="$2" alt="$1" loading="lazy" decoding="async">')
     .replace(/!\[([^\]]*)\]\((https?:[^)\s]+)[^)]*\)/g,
       '<img src="$2" alt="$1" loading="lazy" decoding="async">')
     .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+)\)/g,

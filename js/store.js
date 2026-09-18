@@ -83,6 +83,19 @@ export const prefs = {
 const LIST_CAP = 100;        // 列表最多缓存多少条会话
 const MSG_SESSIONS_CAP = 6;  // 缓存最近打开过的几个会话的消息
 
+/**
+ * 缓存瘦身：服务端会把回复里的 `MEDIA:<图片路径>` 内联成 data URL（最大 5 MB），
+ * 直接落进 localStorage 会撞配额。内存里保留原样（当次能看到图），
+ * 只把**要落盘的这份**换成文字占位 —— 刷新后本来也是取服务端历史（那边同样只剩占位）。
+ */
+function slimRows(rows) {
+  if (!Array.isArray(rows)) return rows;
+  return rows.map((r) => {
+    if (!r || typeof r.content !== 'string' || !r.content.includes('base64,')) return r;
+    return { ...r, content: r.content.replace(/!\[[^\]]*\]\(data:[^)]{200,}\)/g, '[图片 · 未缓存]') };
+  });
+}
+
 export const cache = {
   clear() { localStorage.removeItem(K.cache); },
 
@@ -98,7 +111,7 @@ export const cache = {
     if (!id) return;
     const c = read(K.cache, {}) || {};
     const msgs = c.msgs || { byId: {}, order: [] };
-    msgs.byId[id] = { at: Date.now(), data: (data || []).slice(-400) };
+    msgs.byId[id] = { at: Date.now(), data: slimRows((data || []).slice(-400)) };
     msgs.order = [id, ...(msgs.order || []).filter((x) => x !== id)].slice(0, MSG_SESSIONS_CAP);
     for (const k of Object.keys(msgs.byId)) {
       if (!msgs.order.includes(k)) delete msgs.byId[k];
