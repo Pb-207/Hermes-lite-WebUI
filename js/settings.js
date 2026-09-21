@@ -1,9 +1,10 @@
-/** settings.js —— 设置抽屉：连接、外观、数据管理 */
+/** settings.js —— 设置抽屉：连接、外观、手机通知、数据管理 */
 
 import { $, download, fmtBytes } from './util.js';
 import { config, prefs, cache, normalizeBase, exportAll, importAll, wipe, storageBytes, STORAGE_KEYS } from './store.js';
 import { listModels, listSessions, explainError } from './api.js';
 import { toast, setConn } from './ui.js';
+import * as ntfy from './notify.js';
 
 let onChange = () => {};
 
@@ -19,6 +20,16 @@ export function initSettings({ onConfigChange, onThemeChange, onWipe, onPrefsCha
     $('#g-model').value = c.model || '';
     $('#opt-tools').checked = p.showTools !== false;
     $('#opt-clearafter').checked = p.clearAfter !== false;
+    const nt = c.notify || {};
+    $('#ntf-on').checked = nt.enabled === true;
+    $('#ntf-topic').value = nt.topic || '';
+    $('#ntf-server').value = nt.server || 'https://ntfy.sh';
+    $('#ntf-token').value = nt.token || '';
+    $('#ntf-hidden').checked = nt.onlyHidden !== false;
+    $('#ntf-done').checked = nt.onDone !== false;
+    $('#ntf-error').checked = nt.onError !== false;
+    $('#ntf-msg').textContent = '';
+    $('#ntf-msg').className = 'msg';
     $('#theme-seg').querySelectorAll('button').forEach((b) =>
       b.setAttribute('aria-pressed', String(b.dataset.themeVal === p.theme)));
     $('#g-msg').textContent = '';
@@ -118,6 +129,50 @@ export function initSettings({ onConfigChange, onThemeChange, onWipe, onPrefsCha
   });
   $('#opt-clearafter').addEventListener('change', (e) => {
     prefs.set({ clearAfter: e.target.checked });
+  });
+
+  /* ── 手机通知（ntfy）：改一项就存一项，不用点"保存" ── */
+  const saveNotify = () => {
+    config.set({
+      notify: {
+        enabled: $('#ntf-on').checked,
+        topic: $('#ntf-topic').value.trim(),
+        server: $('#ntf-server').value.trim() || 'https://ntfy.sh',
+        token: $('#ntf-token').value.trim(),
+        onlyHidden: $('#ntf-hidden').checked,
+        onDone: $('#ntf-done').checked,
+        onError: $('#ntf-error').checked,
+      },
+    });
+  };
+  ['#ntf-on', '#ntf-topic', '#ntf-server', '#ntf-token', '#ntf-hidden', '#ntf-done', '#ntf-error']
+    .forEach((sel) => $(sel).addEventListener('change', saveNotify));
+
+  $('#ntf-test').addEventListener('click', async () => {
+    saveNotify();                                  // 可能刚打完 topic 就来点测试，别等 blur
+    const msg = $('#ntf-msg');
+    if (!ntfy.ready()) {
+      msg.className = 'msg err';
+      msg.textContent = '先打开上面的开关，并把 Topic 填上。';
+      return;
+    }
+    msg.className = 'msg';
+    msg.textContent = '发送中…';
+    const r = await ntfy.test();
+    if (r.ok) {
+      msg.className = 'msg ok';
+      msg.textContent = '已发出 ✓ 去看手机通知栏（没到就检查：App 里订阅的是不是同一个 topic、系统有没有允许 ntfy 通知）。';
+    } else {
+      msg.className = 'msg err';
+      msg.textContent = '失败：' + (r.error || '未知原因');
+    }
+  });
+
+  $('#ntf-open').addEventListener('click', () => {
+    saveNotify();
+    const u = ntfy.subscribeUrl();
+    if (!u) { toast('先填 Topic', 'warn'); return; }
+    window.open(u, '_blank', 'noopener');
   });
 
   /* 导出（只导出配置，历史在服务端） */

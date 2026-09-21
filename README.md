@@ -68,6 +68,31 @@ https://your-host/hermes/?base=https://hermes.example.com/v1
 
 Visitors then only paste their own key.
 
+## Phone notifications (ntfy)
+
+Hermes events can land in your phone's notification shade through [ntfy](https://ntfy.sh/) — an
+open-source pub-sub push service with Android/iOS apps, self-hostable.
+
+**How this app does it: the browser sends it.** *Settings → 手机通知（ntfy）* takes a server URL, a
+topic and (optionally) an access token. When a reply finishes — or a turn fails, or the session is
+busy in another client — the page POSTs to `https://<server>/<topic>` and your phone shows a
+notification. The site stays static: no proxy, nothing stored on the server, the topic and token
+live only in your browser's localStorage (same rule as the API key). This works because ntfy answers
+cross-origin preflights with `Access-Control-Allow-Origin: *`.
+
+Setup: install the ntfy app → subscribe to a topic (pick something unguessable: anyone who knows the
+topic can publish to it) → enter the same topic in Settings → hit *发送测试通知*.
+
+Stated plainly:
+
+- **The page has to be alive.** Close the tab and nothing is sent — a static page cannot push out of
+  nowhere. For page-closed delivery, let the **Hermes host** send instead: Hermes ships an ntfy
+  platform adapter, so one shell hook plus `hermes send --to ntfy` covers that half.
+- Titles are Chinese, so they go out as RFC 2047 encoded words — HTTP headers cannot carry raw UTF-8,
+  and ntfy decodes the encoded form.
+- A topic on the public `ntfy.sh` is public. Self-host ntfy with access control and set a token in
+  the settings if the content matters.
+
 ## Endpoints used
 
 | Purpose | Endpoint |

@@ -5,7 +5,7 @@
  * 而不是白屏。api_server 的请求（跨源或 /v1、/api）一律直通网络。
  */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `hermes-lite-webui-${VERSION}`;
 
 const SHELL = [
@@ -25,6 +25,7 @@ const SHELL = [
   './js/ui.js',
   './js/markdown.js',
   './js/settings.js',
+  './js/notify.js',
 ];
 
 self.addEventListener('install', (e) => {

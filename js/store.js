@@ -39,10 +39,31 @@ function write(key, value) {
 
 /* ───────────── 连接配置（含密钥） ───────────── */
 
-const DEFAULT_CONFIG = { baseUrl: '', key: '', model: 'hermes-agent' };
+/**
+ * 手机通知（ntfy）配置。
+ * 通知**由这个浏览器直接发**给 ntfy 服务端，本站不中转、不保存任何东西 ——
+ * 与 API Key 同一套原则：服务器上没有 key，也没有 token。
+ */
+const DEFAULT_NOTIFY = {
+  enabled: false,
+  server: 'https://ntfy.sh',
+  topic: '',
+  token: '',
+  onlyHidden: true,   // 只在页面不在前台时推（否则自己盯着屏幕时每轮都响）
+  onDone: true,       // 回复完成
+  onError: true,      // 出错 / 会话被占用
+};
+
+const DEFAULT_CONFIG = { baseUrl: '', key: '', model: 'hermes-agent', notify: DEFAULT_NOTIFY };
+
+export { DEFAULT_NOTIFY };
 
 export const config = {
-  get() { return { ...DEFAULT_CONFIG, ...(read(K.config, {}) || {}) }; },
+  get() {
+    const raw = read(K.config, {}) || {};
+    // notify 要各自浅合并：整体替换会让以后新增的默认字段在旧配置上变成 undefined
+    return { ...DEFAULT_CONFIG, ...raw, notify: { ...DEFAULT_NOTIFY, ...(raw.notify || {}) } };
+  },
   set(patch) {
     const next = { ...config.get(), ...patch };
     write(K.config, next);
@@ -182,6 +203,7 @@ export function importAll(text, { keepKey = true } = {}) {
       baseUrl: d.config.baseUrl || cur.baseUrl,
       key: keepKey ? (d.config.key || cur.key) : cur.key,
       model: d.config.model || cur.model,
+      notify: { ...cur.notify, ...(d.config.notify || {}) },
     });
     out.config = true;
   }

@@ -55,6 +55,28 @@ https://你的域名/hermes/?base=https://hermes.example.com/v1
 
 这样别人只需要粘自己的 key。
 
+## 手机通知（ntfy）
+
+Hermes 的动静可以进你手机的通知栏，通道用 [ntfy](https://ntfy.sh/)：开源、有 Android/iOS App、
+可自托管。
+
+**这个站的做法是：由浏览器直接发。** *设置 → 手机通知（ntfy）* 里填服务端地址、topic，以及
+（可选的）访问令牌。一轮回复结束时 —— 或者这轮出错、会话被别的客户端占用时 —— 页面直接
+POST 到 `https://<服务端>/<topic>`，你手机的通知栏就响了。站仍然是纯静态的：没有中转、服务器上
+不存任何东西，topic 和 token 只在这个浏览器的 localStorage 里（和 API Key 同一套原则）。
+之所以能不靠后端做到，是因为 ntfy 的跨源预检回 `Access-Control-Allow-Origin: *`。
+
+配置：手机装 ntfy App → 订阅一个 topic（起个不好猜的：知道 topic 的人都能往里发）→ 在设置里填
+同一个 topic → 点*发送测试通知*。
+
+丑话说在前面：
+
+- **页面得活着。** 把标签页关掉就什么都不会发 —— 纯静态页面变不出推送。要"页面关着也收到"，
+  得让 **Hermes 主机**那侧来发：Hermes 自带 ntfy 平台适配器，一条 hook + `hermes send --to ntfy`
+  就把另一半补上了。
+- 标题是中文，因此按 RFC 2047 编码字发出（HTTP 头放不了裸 UTF-8），ntfy 会解码回来。
+- 公共 `ntfy.sh` 上的 topic 就是公开的。内容重要就自托管 ntfy 并配访问控制，在设置里填令牌。
+
 ## 用到的接口
 
 | 用途 | 端点 |

@@ -23,6 +23,7 @@ import {
 } from './api.js';
 import * as ui from './ui.js';
 import { initSettings } from './settings.js';
+import * as ntfy from './notify.js';
 
 const APP_VERSION = '1.2.0';
 const MSG_PAGE = 500;      // 单个会话一次拉多少条历史
@@ -768,6 +769,11 @@ async function send(text) {
           '这条会话正在别处运行（桌面端或另一个客户端），本轮没有执行。等它空下来再发一次即可。', 'warn');
       }
       ui.toast('会话被占用：这一轮没有执行', 'warn', 8000);
+      ntfy.notifyEvent('error', {
+        title: 'Hermes · 会话被占用',
+        text: '这一轮没有执行：这条会话正在别处运行（桌面端或另一个客户端）。',
+        tags: ['warning'],
+      });
     }
 
     if (p.status === 'failed') throw new Error(res.error || '这一轮失败了');
@@ -789,6 +795,13 @@ async function send(text) {
     if (target !== sid) streams.delete(target);
     setRows(target, finalRows);
 
+    // 手机通知：这一轮完了（页面不在前台时才推；开关与判断都在 notify.js 里）
+    ntfy.notifyEvent('done', {
+      title: `Hermes · ${shortTitle(target)}`,
+      text: p.acc || '(空回复)',
+      tags: ['white_check_mark'],
+    });
+
     if (!p.acc && !p.tools.length && p.status === 'completed') {
       ui.toast('回复是空的 —— 后端可能返回了非标准流', 'warn', 6000);
     }
@@ -802,6 +815,12 @@ async function send(text) {
   } catch (err) {
     streams.delete(sid);
     const human = explainError(err, err.status);
+    // 通知独立于下面的 UI 分支：explainError 说不出人话时，手机上也该知道这轮挂了
+    ntfy.notifyEvent('error', {
+      title: 'Hermes · 出错',
+      text: human || String((err && err.message) || err),
+      tags: ['warning'],
+    });
     if (human) {
       // 一条都没收到：撤掉这一轮的 user 行，不留空气泡
       const cur = rowsOf(sid);
