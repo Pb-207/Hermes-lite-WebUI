@@ -40,12 +40,18 @@ function write(key, value) {
 /* ───────────── 连接配置（含密钥） ───────────── */
 
 /**
- * 手机通知（ntfy）配置。
- * 通知**由这个浏览器直接发**给 ntfy 服务端，本站不中转、不保存任何东西 ——
- * 与 API Key 同一套原则：服务器上没有 key，也没有 token。
+ * 手机通知配置。
+ *
+ * 两个通道：
+ *  - 'browser'（默认）：页面自己弹系统通知（Web Notifications）。**不需要任何第三方**，
+ *    事件源就是已连着的 gateway —— 页面读完这一轮就弹。代价：页面关掉就没了。
+ *  - 'ntfy'：第三方推送服务（开源、可自托管、有手机 App）。它能覆盖"页面关着"的情形，
+ *    但前提是服务端那半也配了（hook + `hermes send --to ntfy`）—— 光靠页面发也是"页面活着才行"。
+ *  - 'both'：两个都发。
  */
 const DEFAULT_NOTIFY = {
   enabled: false,
+  channel: 'browser',   // 'browser' | 'ntfy' | 'both'
   server: 'https://ntfy.sh',
   topic: '',
   token: '',

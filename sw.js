@@ -5,7 +5,7 @@
  * 而不是白屏。api_server 的请求（跨源或 /v1、/api）一律直通网络。
  */
 
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = `hermes-lite-webui-${VERSION}`;
 
 const SHELL = [
@@ -41,6 +41,19 @@ self.addEventListener('activate', (e) => {
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+  );
+});
+
+// 点通知 → 回到页面（页面已开着就聚焦它，否则新开一个）
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ('focus' in c) return c.focus();
+      }
+      return self.clients.openWindow ? self.clients.openWindow('./') : undefined;
+    })
   );
 });
 

@@ -68,30 +68,28 @@ https://your-host/hermes/?base=https://hermes.example.com/v1
 
 Visitors then only paste their own key.
 
-## Phone notifications (ntfy)
+## Phone notifications
 
-Hermes events can land in your phone's notification shade through [ntfy](https://ntfy.sh/) — an
-open-source pub-sub push service with Android/iOS apps, self-hostable.
+Hermes events can reach your phone's notification shade. Two channels, chosen in *Settings → 手机通知*:
 
-**How this app does it: the browser sends it.** *Settings → 手机通知（ntfy）* takes a server URL, a
-topic and (optionally) an access token. When a reply finishes — or a turn fails, or the session is
-busy in another client — the page POSTs to `https://<server>/<topic>` and your phone shows a
-notification. The site stays static: no proxy, nothing stored on the server, the topic and token
-live only in your browser's localStorage (same rule as the API key). This works because ntfy answers
-cross-origin preflights with `Access-Control-Allow-Origin: *`.
+**Browser (default) — no third party involved.** The page already streams each turn over the gateway it is
+connected to, so when the turn finishes it raises a real system notification itself
+(`ServiceWorkerRegistration.showNotification`, falling back to `new Notification()`), and tapping it
+focuses the tab. Nothing is proxied, nothing is stored server-side. The honest limit is physical: **the
+page has to be alive** — a static page cannot wake a closed one.
 
-Setup: install the ntfy app → subscribe to a topic (pick something unguessable: anyone who knows the
-topic can publish to it) → enter the same topic in Settings → hit *发送测试通知*.
+**ntfy (optional) — for when the page is closed.** [ntfy](https://ntfy.sh/) is an open-source pub-sub push
+service with Android/iOS apps, self-hostable. The page POSTs to `https://<server>/<topic>` — ntfy answers
+cross-origin preflights with `Access-Control-Allow-Origin: *`, which is what lets a backend-free static
+site publish at all. But a page can only publish while it is alive; the channel's real value is that **the
+Hermes host can publish to the same topic** — Hermes ships an ntfy platform adapter, so one shell hook plus
+`hermes send --to ntfy` covers "the page was closed". That half is host-side setup, not a frontend feature.
 
-Stated plainly:
-
-- **The page has to be alive.** Close the tab and nothing is sent — a static page cannot push out of
-  nowhere. For page-closed delivery, let the **Hermes host** send instead: Hermes ships an ntfy
-  platform adapter, so one shell hook plus `hermes send --to ntfy` covers that half.
-- Titles are Chinese, so they go out as RFC 2047 encoded words — HTTP headers cannot carry raw UTF-8,
-  and ntfy decodes the encoded form.
-- A topic on the public `ntfy.sh` is public. Self-host ntfy with access control and set a token in
-  the settings if the content matters.
+Both channels fire on: reply finished, turn failed, or the session was busy in another client. "Only when
+the page is in the background" is on by default so you don't get buzzed while watching the reply arrive.
+Setup: switch it on, pick the channel, hit *发送测试通知*. Titles are Chinese and go out as RFC 2047 encoded
+words on ntfy (HTTP headers cannot carry raw UTF-8). Public `ntfy.sh` topics are public — self-host ntfy
+with access control and set a token if the content matters.
 
 ## Endpoints used
 

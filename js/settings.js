@@ -30,6 +30,7 @@ export function initSettings({ onConfigChange, onThemeChange, onWipe, onPrefsCha
     $('#ntf-error').checked = nt.onError !== false;
     $('#ntf-msg').textContent = '';
     $('#ntf-msg').className = 'msg';
+    paintNotify();
     $('#theme-seg').querySelectorAll('button').forEach((b) =>
       b.setAttribute('aria-pressed', String(b.dataset.themeVal === p.theme)));
     $('#g-msg').textContent = '';
@@ -131,11 +132,34 @@ export function initSettings({ onConfigChange, onThemeChange, onWipe, onPrefsCha
     prefs.set({ clearAfter: e.target.checked });
   });
 
-  /* ── 手机通知（ntfy）：改一项就存一项，不用点"保存" ── */
+  /* ── 手机通知：改一项就存一项，不用点"保存" ── */
+  const CHAN_HINT = {
+    browser: '不需要任何第三方：页面自己弹系统通知，事件源就是已连着的 gateway。代价是页面关掉就收不到。',
+    ntfy: '走 ntfy（手机装 ntfy App 并订阅同一个 topic）。页面关着也收得到 —— 但那半要在 Hermes 主机侧配 hook，光靠这个页面发一样是"页面活着才行"。',
+    both: '两个通道都发：页面开着时弹浏览器通知，同时也往 ntfy 发一条。',
+  };
+
+  const chanSel = () => {
+    const b = $('#ntf-chan').querySelector('button[aria-pressed="true"]');
+    return (b && b.dataset.chan) || 'browser';
+  };
+
+  const paintNotify = () => {
+    const ch = chanSel();
+    $('#ntf-chan').querySelectorAll('button').forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.chan === ch)));
+    $('#ntf-ntfy-fields').classList.toggle('off', ch === 'browser');
+    const perm = ntfy.permState();
+    const permTxt = perm === 'granted' ? '已授权' : perm === 'denied' ? '被拒绝（要在浏览器设置里放行）'
+      : perm === 'unsupported' ? '这个浏览器不支持' : '未授权（点"请求通知权限"）';
+    $('#ntf-chan-hint').textContent = CHAN_HINT[ch] + (ch === 'ntfy' ? '' : ` 通知权限：${permTxt}。`);
+  };
+
   const saveNotify = () => {
     config.set({
       notify: {
         enabled: $('#ntf-on').checked,
+        channel: chanSel(),
         topic: $('#ntf-topic').value.trim(),
         server: $('#ntf-server').value.trim() || 'https://ntfy.sh',
         token: $('#ntf-token').value.trim(),
@@ -144,34 +168,47 @@ export function initSettings({ onConfigChange, onThemeChange, onWipe, onPrefsCha
         onError: $('#ntf-error').checked,
       },
     });
+    paintNotify();
   };
+
   ['#ntf-on', '#ntf-topic', '#ntf-server', '#ntf-token', '#ntf-hidden', '#ntf-done', '#ntf-error']
     .forEach((sel) => $(sel).addEventListener('change', saveNotify));
+  $('#ntf-chan').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-chan]');
+    if (!b) return;
+    $('#ntf-chan').querySelectorAll('button').forEach((x) =>
+      x.setAttribute('aria-pressed', String(x === b)));
+    saveNotify();
+  });
+
+  $('#ntf-perm').addEventListener('click', async () => {
+    const msg = $('#ntf-msg');
+    const r = await ntfy.requestPerm();
+    paintNotify();
+    msg.className = r === 'granted' ? 'msg ok' : 'msg err';
+    msg.textContent = r === 'granted' ? '已授权 ✓ 测试一下就知道了。'
+      : r === 'denied' ? '被拒绝了：去浏览器/系统的通知设置里给这个站点放行。'
+        : r === 'unsupported' ? '这个浏览器不支持系统通知。' : '没拿到权限（' + r + '）。';
+  });
 
   $('#ntf-test').addEventListener('click', async () => {
     saveNotify();                                  // 可能刚打完 topic 就来点测试，别等 blur
     const msg = $('#ntf-msg');
-    if (!ntfy.ready()) {
-      msg.className = 'msg err';
-      msg.textContent = '先打开上面的开关，并把 Topic 填上。';
-      return;
-    }
     msg.className = 'msg';
     msg.textContent = '发送中…';
-    const r = await ntfy.test();
-    if (r.ok) {
-      msg.className = 'msg ok';
-      msg.textContent = '已发出 ✓ 去看手机通知栏（没到就检查：App 里订阅的是不是同一个 topic、系统有没有允许 ntfy 通知）。';
-    } else {
-      msg.className = 'msg err';
-      msg.textContent = '失败：' + (r.error || '未知原因');
-    }
+    const results = await ntfy.test();
+    const okAll = results.every(([, r]) => r.ok);
+    msg.className = okAll ? 'msg ok' : 'msg err';
+    msg.textContent = results
+      .map(([name, r]) => `${name}：${r.ok ? '已发出 ✓' : '失败 — ' + (r.error || '未知')}`)
+      .join('　');
+    if (okAll && ntfy.useBrowser()) msg.textContent += '　（看系统通知是不是弹出来了）';
   });
 
   $('#ntf-open').addEventListener('click', () => {
     saveNotify();
     const u = ntfy.subscribeUrl();
-    if (!u) { toast('先填 Topic', 'warn'); return; }
+    if (!u) { toast('先把 ntfy 的 Topic 填上', 'warn'); return; }
     window.open(u, '_blank', 'noopener');
   });
 

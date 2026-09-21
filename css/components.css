@@ -469,6 +469,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 18px 0 6px; }
   border-radius: 8px; border: 1px solid var(--border);
   display: block; margin: 8px 0;
 }
+/* 通道选成"不包含 ntfy"时，把 ntfy 的字段压暗 —— 不是禁用，只是表明当前用不上 */
+#ntf-ntfy-fields.off { opacity: .45; }
 .tool {
   display: flex;
   align-items: center;

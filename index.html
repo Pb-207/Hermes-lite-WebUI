@@ -204,16 +204,26 @@
 
       <hr>
       <div class="opt-row">
-        <span>手机通知（ntfy）</span>
+        <span>手机通知</span>
         <label class="switch"><input type="checkbox" id="ntf-on"><i></i></label>
       </div>
-      <p class="hint">手机装 <b>ntfy</b> App，订阅下面这个 topic，Hermes 的动静就会进系统通知栏。</p>
-      <label for="ntf-topic">Topic（手机订阅同名）</label>
-      <input id="ntf-topic" type="text" spellcheck="false" autocapitalize="off" placeholder="hermes-xxxxxxxx">
-      <label for="ntf-server">ntfy 服务端（可自托管）</label>
-      <input id="ntf-server" type="url" inputmode="url" spellcheck="false" autocapitalize="off" placeholder="https://ntfy.sh">
-      <label for="ntf-token">访问令牌（可选，自托管 / 私有 topic 才需要）</label>
-      <input id="ntf-token" type="password" spellcheck="false" autocapitalize="off" placeholder="tk_…">
+      <div class="opt-row">
+        <span>通道</span>
+        <div class="seg" id="ntf-chan">
+          <button type="button" data-chan="browser">浏览器</button>
+          <button type="button" data-chan="ntfy">ntfy</button>
+          <button type="button" data-chan="both">都要</button>
+        </div>
+      </div>
+      <p class="hint" id="ntf-chan-hint"></p>
+      <div id="ntf-ntfy-fields">
+        <label for="ntf-topic">Topic（手机 ntfy App 订阅同名）</label>
+        <input id="ntf-topic" type="text" spellcheck="false" autocapitalize="off" placeholder="hermes-xxxxxxxx">
+        <label for="ntf-server">ntfy 服务端（可自托管）</label>
+        <input id="ntf-server" type="url" inputmode="url" spellcheck="false" autocapitalize="off" placeholder="https://ntfy.sh">
+        <label for="ntf-token">访问令牌（可选，自托管 / 私有 topic 才需要）</label>
+        <input id="ntf-token" type="password" spellcheck="false" autocapitalize="off" placeholder="tk_…">
+      </div>
       <div class="opt-row">
         <span>只在页面不在前台时推</span>
         <label class="switch"><input type="checkbox" id="ntf-hidden" checked><i></i></label>
@@ -228,11 +238,10 @@
       </div>
       <div class="row" style="margin-top:10px">
         <button class="btn" type="button" id="ntf-test">发送测试通知</button>
+        <button class="btn" type="button" id="ntf-perm">请求通知权限</button>
         <button class="btn" type="button" id="ntf-open">打开订阅页</button>
       </div>
       <p class="msg" id="ntf-msg" role="status"></p>
-      <p class="hint">通知由<b>这个浏览器</b>直接发给你自己的 ntfy 服务端，本站不中转、不保存 topic 和 token。
-        代价是页面关掉就收不到；要离线也到，得在 Hermes 服务端那条路上加一条 hook。</p>
 
       <hr>
       <p class="hint" id="g-store"></p>
